@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+
+<style id="webmakerstyle">
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  background: #151518;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* Screen Controller */
+.screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  flex-direction: column;
+}
+.screen.active {
+  display: flex;
+}
+
+/* Menu styling */
+.game-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #ffbe0b;
+  text-shadow: 3px 3px 0px #d90429;
+  margin: 20px 0;
+}
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 400px;
+  margin: 0 auto;
+  width: 90%;
+}
+button {
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+}
+button:active {
+  transform: scale(0.97);
+}
+.btn-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 1.1rem;
+}
+.btn-upper { background: #3a86c8; box-shadow: 0 4px 0 #205c93; }
+.btn-lower { background: #38ef7d; box-shadow: 0 4px 0 #1c9c4d; color: #113f1f; }
+.btn-g5 { background: #ff9f1c; box-shadow: 0 4px 0 #bc710c; }
+.btn-g6 { background: #9b5de5; box-shadow: 0 4px 0 #6d2fba; }
+.best-time {
+  font-size: 0.8rem;
+  background: rgba(0,0,0,0.3);
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+.btn-collection {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  background: #6c757d;
+  box-shadow: 0 4px 0 #495057;
+}
+
+/* ================= RETRO STREET FIGHTER CHARACTER SELECT STYLING ================= */
+.char-select-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background: #0d0d11;
+  padding: 20px;
+}
+.char-select-title {
+  color: #ff4757;
+  font-size: 2.2rem;
+  text-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+  margin-bottom: 5px;
+}
+.char-select-subtitle {
+  color: #a4b0be;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 480px;
+  width: 90%;
+  margin-bottom: 35px;
+}
+@media (min-width: 450px) {
+  .character-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 650px;
+  }
+}
+.char-card {
+  background: #1e1e24;
+  border: 3px solid #4a4e69;
+  border-radius: 12px;
+  padding: 10px; 
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Centers everything */
+  height: 150px; 
+  position: relative; 
+  overflow: hidden;   
+  transition: all 0.2s ease-in-out;
+}
+
+.char-card-img {
+  max-height: 105px; 
+  width: auto;
+  max-width: 90%;
+  object-fit: contain;
+}
+
+.char-card-name {
+  margin-top: 8px; /* Brings name closer to the character */
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* Classic Hero specific scaling & custom font sizing */
+.char-card:first-child .char-card-img {
+  transform: scale(1.6);
+  margin-bottom: -10px; /* Pulls image down to eliminate blank space */
+}
+
+.char-card:first-child .char-card-name {
+  font-size: 0.6rem;
+  z-index: 2; /* Keeps the text visible over the zoomed image */
+}
+
+.btn-char-back {
+  background: #4a4e69;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+/* ================= ADJUSTED GAME SCREEN LAYOUT (TOP BIGGER THAN BOTTOM) ================= */
+#screen-game {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+#screen-game.active {
+  display: flex;
+}
+
+/* TOP HALF: Combat/Monster Display (Platformer Screen Area) */
+.game-top-half {
+  height: 58vh;
+  min-height: 58vh;
+  max-height: 58vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 5px solid #ffbe0b;
+  overflow: hidden;
+}
+
+/* ================= 2D PLATFORMER SCROLLING BACKGROUND & FLOOR ================= */
+
+/* Always keep the animation attached to the background */
+#game-scrolling-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-image: url("/local/bg1.png");
+  background-repeat: repeat-x;
+  background-size: 50% 100%;
+  background-position: left bottom;
+  z-index: 1;
+  
+  /* Attach the animation here */
+  animation: scrollBackground 12s linear infinite;
+  /* Pause it by default when the game starts */
+  animation-play-state: paused; 
+}
+
+/* Infinite Horizontal scrolling keyframe animation */
+@keyframes scrollBackground {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); } 
+}
+
+/* When the world is actively scrolling, play the animation */
+.world-scrolling #game-scrolling-bg {
+  animation-play-state: running;
+}
+
+/* Player Sprite Image - Scaled down and positioned neatly in the left corner */
+#player-avatar {
+  position: absolute;
+  bottom: 5px; /* Back on top of the sandy road line */
+  left: 25%;   /* Tucked cleanly into the left corner */
+  height: 35vh; /* Balanced size to fit perfectly in the top panel */
+  width: auto;  
+  object-fit: contain;
+  z-index: 3;
+  transition: transform 0.3s ease;
+}
+
+/* Running bob action styling - FIXED: No scaleX flipping here either */
+@keyframes playerRunBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-5deg); }
+}
+
+/* Active running phase class - Removed the bouncing animation */
+.world-scrolling #player-avatar {
+  /* Animation removed so character stays completely still while the background scrolls */
+  animation: none; 
+}
+
+/* Monster Wrapper adjustment: Slides in smoothly from the far right edge */
+#monster-container-platformer {
+  position: absolute;
+  bottom: 45px; /* Aligned to stand on the sandy ground layer */
+  right: 15%;
+  height: auto;
+  width: auto;
+  z-index: 3;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 1.5s linear, opacity 0.5s ease-out; /* Match sliding time with walking phase */
+}
+
+/* Hidden state snaps the monster off-screen right instantly */
+#monster-container-platformer.hidden {
+  transform: translateX(600px);
+  opacity: 0;
+  transition: none;
+}
+
+/* Float Exit button over top area */
+.btn-exit-floating {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: #ff4757;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  box-shadow: 0 3px 0 #b3303c;
+  z-index: 10;
+}
+
+#boss-banner {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff4757;
+  color: #fff;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+  z-index: 10;
+}
+
+.top-hud {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+.timer-badge, .progress-badge {
+  background: rgba(0,0,0,0.6);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+/* Monster Asset alignment */
+.monster-wrapper-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.monster-sprite {
+  max-height: 250px;
+  max-width: 250px;
+  object-fit: contain;
+  animation: float-cycle 3s ease-in-out infinite;
+}
+
+/* HP bar layouts */
+.monster-hp-container {
+  width: 140px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid #fff;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  /* Pushes the health bar down to match the lowered monster */
+  top: 35px !important; 
+}
+.monster-hp-bar {
+  height: 100%;
+  width: 100%;
+  background: #ff4757; /* Smooth red HP fill */
+  transition: width 0.3s ease-out;
+}
+.monster-hp-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 1px 1px 1px #000;
+}
+
+@keyframes float-cycle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* BOTTOM HALF: Writing Interactive Canvas */
+.game-bottom-half {
+  height: 42vh;
+  min-height: 42vh;
+  max-height: 42vh;
+  background: #f4f5f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+
+.word-info {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.jp-text {
+  font-size: 1.3rem;
+  color: #2b2d42;
+  font-weight: 900;
+  background: #e2e8f0;
+  padding: 3px 14px;
+  border-radius: 12px;
+}
+
+/* Red Careless Tracing Message style with shake effect */
+.trace-warning-text {
+  color: #ff4757;
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+  animation: alert-shake 0.4s ease-in-out;
+}
+
+@keyframes alert-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.canvas-wrapper {
+  background: #ffffff;
+  border: 4px solid #3a86c8;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: center;
+  max-height: 52%;
+}
+#writing-canvas {
+  display: block;
+  cursor: crosshair;
+  background: #ffffff;
+  touch-action: none;
+}
+
+/* Action Controls */
+.bottom-controls {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 600px;
+}
+.btn-control {
+  flex: 1;
+  padding: 10px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+}
+.btn-clear-draw {
+  background: #ff4757;
+  box-shadow: 0 4px 0 #b3303c;
+}
+.btn-attack-monster {
+  background: #2ed573;
+  box-shadow: 0 4px 0 #219653;
+}
+
+/* Victory & Collection elements */
+.victory-card {
+  background: #2b2d42;
+  border: 4px solid #ffbe0b;
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  margin: auto;
+}
+.victory-card h2 { color: #ffbe0b; margin-bottom: 12px; }
+.final-time { font-size: 1.2rem; }
+.record-alert { color: #2ed573; font-weight: bold; margin: 8px 0; }
+.unlock-zone { background: #151518; padding: 12px; border-radius: 12px; margin: 15px 0; }
+.reward-display { cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+.reward-icon { font-size: 3.5rem; }
+.reward-name { color: #ffbe0b; font-weight: bold; margin-top: 5px; }
+
+.btn-primary { padding: 12px 24px; background: #ff4757; box-shadow: 0 4px 0 #b3303c; }
+.btn-back { padding: 8px 16px; background: #4a4e69; border-radius: 8px; }
+
+.tracker-badge { background: #ffbe0b; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: bold; display: inline-block; }
+.collection-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; }
+.collection-tabs { display: flex; gap: 8px; padding: 0 10px; }
+.tab-btn { flex: 1; padding: 8px; background: #222; }
+.tab-btn.active { background: #ffbe0b; color: #000; }
+.collection-content { flex: 1; overflow-y: auto; padding: 10px; }
+.grid-container { display: none; }
+.grid-container.active { display: block; }
+.grid-sub { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.collection-item { background: #2b2d42; border-radius: 12px; aspect-ratio: 1; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s ease; }
+.collection-item span { font-size: 1.8rem; }
+.collection-item.locked { border: 2px dashed #4a4e69; background: #1d1e2c; }
+.collection-item.locked span { font-size: 1.8rem; color: #ff4757; }
+.collection-item.rare-card { border: 2px solid #ffbe0b; }
+.rare-hint { font-size: 0.75rem; color: #ff9f1c; }
+
+/* Modal overlays */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
+.modal-overlay.active { display: flex; }
+.modal-card { background: #2b2d42; border: 4px solid #ffbe0b; border-radius: 20px; padding: 30px; text-align: center; max-width: 360px; width: 90%; position: relative; }
+.modal-close { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: #ff4757; font-size: 1.2rem; }
+.modal-icon { font-size: 5rem; margin-bottom: 15px; }
+.modal-title { color: #ffbe0b; margin-bottom: 10px; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Classic Hero specific scaling & custom font sizing */
+.char-card:first-child {
+  position: relative; /* Allows absolute positioning for the name */
+}
+
+.char-card:first-child .char-card-img {
+  transform: scale(2.8); /* Bumped up from 1.6 to blow up the tiny sprite */
+  transform-origin: center center;
+  margin-top: -15px; /* Pulls the character up away from the name */
+}
+
+.char-card:first-child .char-card-name {
+  font-size: 0.65rem;
+  position: absolute;
+  bottom: 8px; /* Permanently locks the words to the bottom edge */
+  left: 0;
+  right: 0;
+  text-align: center;
+  background: rgba(30, 30, 36, 0.9); /* Adds a dark backing so the legs don't block the letters */
+  padding: 2px 0;
+  z-index: 5;
+}
+
+/* Custom Boss Images in Collection Grid */
+.collection-item img {
+  max-width: 85%;
+  max-height: 85%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Custom Boss Image on Victory Level Clear Screen */
+.reward-icon img {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+  animation: float-cycle 3s ease-in-out infinite;
+}
+
+/* Custom Boss Image in Details Modal Pop-up */
+.modal-icon img {
+  max-width: 140px;
+  max-height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(255, 190, 11, 0.5));
+}
+
+/* Make all enemy monsters bigger and move them closer to the bottom of the top half */
+.monster-img, img[src*="monster"], img[src*="Monster"], .monster-sprite {
+  transform: scale(1.6) !important;
+  transform-origin: bottom right !important; /* Keeps them anchored beautifully */
+  position: relative !important;
+  top: 55px !important; /* This pushes the monster down! Adjust this number as needed */
+}
+
+/* --- DAMAGE FLASH AND SHAKE EFFECTS --- */
+
+/* Damage Red Flash overlay (created dynamically on body) */
+.damage-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 0, 0, 0.4);
+  z-index: 99999;
+  pointer-events: none;
+  animation: flash-fade 0.4s ease-out forwards;
+}
+
+@keyframes flash-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Screen Shake applied to the active game screen */
+.shake-screen {
+  animation: screen-shake 0.4s ease-in-out;
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-8px, -4px); }
+  20%, 40%, 60%, 80% { transform: translate(8px, 4px); }
+}
+
+/* Ensure modal card image fits inside its box */
+#modal-icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Ensure the card container clips any excess */
+.modal-card, #reward-modal .modal-content {
+  max-width: 90vw;
+  max-height: 85vh;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevents anything from sticking out */
+}
+
+#screen-menu {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("title.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+</style>
+</head>
+<body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Monster Writing Quest</title>
+  
+</head>
+<body>
+
+  <!-- 1. MAIN MENU SCREEN -->
+  <div id="screen-menu" class="screen active">
+    <h1 class="game-title">Monster Writing Quest</h1>
+    <div class="menu-buttons">
+      <!-- Changed from directly starting game to entering Character Select screen -->
+      <button class="btn-mode btn-upper" onclick="goToCharacterSelect('upper')">
+        <span>Uppercase Letters (A-Z)</span>
+        <span class="best-time" id="best-upper">Best: --s</span>
+      </button>
+      <button class="btn-mode btn-lower" onclick="goToCharacterSelect('lower')">
+        <span>Lowercase Letters (a-z)</span>
+        <span class="best-time" id="best-lower">Best: 38.09s</span>
+      </button>
+      <button class="btn-mode btn-g5" onclick="goToCharacterSelect('g5')">
+        <span>5th Grade Words</span>
+        <span class="best-time" id="best-g5">Best: --s</span>
+      </button>
+      <button class="btn-mode btn-g6" onclick="goToCharacterSelect('g6')">
+        <span>6th Grade Words</span>
+        <span class="best-time" id="best-g6">Best: 10.62s</span>
+      </button>
+      <button class="btn-collection" onclick="openCollection()">🎒 View My Collection</button>
+    </div>
+  </div>
+
+  <!-- CHARACTER SELECT SCREEN (STREET FIGHTER RETRO STYLE) -->
+  <div id="screen-char-select" class="screen">
+    <div class="char-select-container">
+      <h2 class="char-select-title">SELECT YOUR FIGHTER</h2>
+      <p class="char-select-subtitle">Choose your character! </p>
+      
+      <div class="character-grid">
+        <!-- Card 1 (Classic Hero) -->
+        <div class="char-card" onclick="selectFighter('character1.png')">
+          <img src="character1.png" alt="Classic Hero" class="char-card-img" />
+          <div class="char-card-name">Gunbreaker</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="char-card" onclick="selectFighter('character2.png')">
+          <img src="character2.png" alt="Hero 2" class="char-card-img" />
+          <div class="char-card-name">S&D</div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="char-card" onclick="selectFighter('character3.png')">
+          <img src="character3.png" alt="Hero 3" class="char-card-img" />
+          <div class="char-card-name">Black Mage</div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="char-card" onclick="selectFighter('character4.png')">
+          <img src="character4.png" alt="Hero 4" class="char-card-img" />
+          <div class="char-card-name">Dancer</div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="char-card" onclick="selectFighter('character5.png')">
+          <img src="character5.png" alt="Hero 5" class="char-card-img" />
+          <div class="char-card-name">Marksman</div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="char-card" onclick="selectFighter('character6.png')">
+          <img src="character6.png" alt="Hero 6" class="char-card-img" />
+          <div class="char-card-name">Bard </div>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="char-card" onclick="selectFighter('character7.png')">
+          <img src="character7.png" alt="Hero 7" class="char-card-img" />
+          <div class="char-card-name">White Mage</div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="char-card" onclick="selectFighter('character8.png')">
+          <img src="character8.png" alt="Hero 8" class="char-card-img" />
+          <div class="char-card-name">Explorer</div>
+        </div>
+
+        <!-- Card 9 -->
+        <div class="char-card" onclick="selectFighter('character9.png')">
+          <img src="character9.png" alt="Hero 9" class="char-card-img" />
+          <div class="char-card-name">Dragoon</div>
+        </div>
+
+        <!-- Card 10 -->
+        <div class="char-card" onclick="selectFighter('character10.png')">
+          <img src="character10.png" alt="Hero 10" class="char-card-img" />
+          <div class="char-card-name">Astrologian</div>
+        </div>
+
+        <!-- Card 11 -->
+        <div class="char-card" onclick="selectFighter('character11.png')">
+          <img src="character11.png" alt="Hero 11" class="char-card-img" />
+          <div class="char-card-name">Reaper</div>
+        </div>
+  <!-- Card 12 -->
+<div class="char-card" onclick="selectFighter('character12.png')">
+  <img src="character12.png" alt="Hero 12" class="char-card-img" />
+  <div class="char-card-name">Mika the Musical</div>
+</div>
+
+
+      </div>
+      <button class="btn-back btn-char-back" onclick="showScreen('menu')">◀ Back to Menu</button>
+    </div>
+  </div>
+
+  <!-- 2. GAME SCREEN (2D PLATFORMER LAYOUT) -->
+  <div id="screen-game" class="screen">
+  
+    <!-- Player Hearts Overlay -->
+    <div id="player-hearts-container" style="position: absolute; top: 15px; left: 120px; z-index: 10; font-size: 1.5rem; display: flex; gap: 4px;">
+      ❤️❤️❤️❤️❤️
+    </div>
+
+    <!-- TOP HALF: 2D Platformer Area with scrolling desert background -->
+    <div class="game-top-half" id="game-arena-bg">
+      <!-- Scrolling Desert Background Layer -->
+      <div id="game-scrolling-bg"></div>
+      
+      <!-- Static Ground Platform -->
+      <div id="game-ground"></div>
+
+      <!-- Player Avatar Image Element -->
+      <img id="player-avatar" class="character-sprite" src="character1.png" alt="Player Character" />
+
+      <button class="btn-back btn-exit-floating" onclick="exitGame()">❌ Exit</button>
+      <div id="boss-banner" style="display: none;">⚠️ BOSS BATTLE ⚠️</div>
+      
+      <div class="top-hud">
+        <div class="timer-badge">⏱️ <span id="game-timer">0.00</span>s</div>
+        <div class="progress-badge">Monster: <span id="game-progress">1/8</span></div>
+      </div>
+
+      <!-- Monster Asset & HP Container (Slides in from the right) -->
+      <div class="monster-container hidden" id="monster-container-platformer">
+        <div class="monster-wrapper-box">
+          <!-- Monster sprite image -->
+          <img id="monster-sprite" class="monster-sprite" src="https://api.iconify.design/noto:alien-monster.svg" alt="Monster" />
+          
+          <!-- Red HP Bar indicator showing monster status -->
+          <div class="monster-hp-container">
+            <div id="monster-hp-bar" class="monster-hp-bar"></div>
+            <span id="monster-hp-text" class="monster-hp-text">HP: 3/3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM HALF: Tracing Area, Japanese Meanings, Controls -->
+   <!-- BOTTOM HALF: Tracing Area, Japanese Meanings, Controls -->
+    <div class="game-bottom-half">
+      <!-- Word Display, Japanese Translation & Red Tracing Warning -->
+      <div class="word-info">
+        <span id="word-japanese-translation" class="jp-text"></span>
+        <span id="trace-warning" class="trace-warning-text" style="display: none;">trace carefully ゆっくり</span>
+      </div>
+
+      <!-- Tracing Canvas Area -->
+      <div class="canvas-wrapper">
+        <canvas id="writing-canvas" width="900" height="240"></canvas>
+      </div>
+
+      <!-- Tracing Action Controls -->
+      <div class="bottom-controls">
+        <button id="btn-clear" class="btn-control btn-clear-draw" onclick="clearCanvas()">🧹 Clear</button>
+        <button id="btn-attack" class="btn-control btn-attack-monster" onclick="attackMonster()">⚔️ Attack!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. VICTORY SCREEN -->
+  <div id="screen-victory" class="screen">
+    <div class="victory-card">
+      <h2>🎉 LEVEL CLEAR! 🎉</h2>
+      <p class="final-time">Time Taken: <span id="finish-time">0.00</span> seconds</p>
+      <p id="new-record-text" class="record-alert" style="display:none;">🏆 NEW BEST! 🏆</p>
+      
+      <div class="unlock-zone">
+        <p>You earned a prize!</p>
+        <div class="reward-display" onclick="zoomVictoryReward()">
+          <span class="reward-icon" id="reward-icon">🎁</span>
+          <span class="reward-name" id="reward-name">Unlocking...</span>
+        </div>
+      </div>
+      
+      <button class="btn-primary" onclick="showScreen('menu')">Keep Writing</button>
+    </div>
+  </div>
+
+  <!-- 4. COLLECTION SCREEN -->
+  <div id="screen-collection" class="screen">
+    <div class="collection-header">
+      <button class="btn-back" onclick="showScreen('menu')">◀ Back</button>
+      <div id="collection-progress-badge" class="tracker-badge">0/26</div>
+    </div>
+
+    <div class="collection-tabs">
+      <button id="tab-btn-letters" class="tab-btn active" onclick="switchTab('letters')">Letters</button>
+      <button id="tab-btn-g5" class="tab-btn" onclick="switchTab('g5')">5th Grade</button>
+      <button id="tab-btn-g6" class="tab-btn" onclick="switchTab('g6')">6th Grade</button>
+    </div>
+
+    <div class="collection-content">
+      <!-- Letters Grid -->
+      <div id="grid-letters" class="grid-container active">
+        <h3>Monsters Captured (A-Z)</h3>
+        <div id="grid-letters-sub" class="grid-sub"></div>
+      </div>
+
+      <!-- G5 Grid -->
+      <div id="grid-g5" class="grid-container">
+        <h3>Normal Rewards (15 items)</h3>
+        <div id="grid-g5-normal" class="grid-sub"></div>
+        <h3>Ultra Rare Items (5 items) <span class="rare-hint">(Clear under 50s! OR collect all 15 normal rewards to unlock)</span></h3>
+        <div id="grid-g5-ultra" class="grid-sub"></div>
+        <h3>Legendary Bosses (3 Monsters)</h3>
+        <div id="grid-g5-rare-monsters" class="grid-sub"></div>
+      </div>
+
+      <!-- G6 Grid -->
+      <div id="grid-g6" class="grid-container">
+        <h3>Normal Rewards (15 items)</h3>
+        <div id="grid-g6-normal" class="grid-sub"></div>
+        <h3>Ultra Rare Items (5 items) <span class="rare-hint">(Clear under 50s!)</span></h3>
+        <div id="grid-g6-ultra" class="grid-sub"></div>
+        <h3>Legendary Bosses (3 Monsters)</h3>
+        <div id="grid-g6-rare-monsters" class="grid-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ZOOM DETAILS MODAL -->
+  <div id="reward-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeZoom()">×</button>
+      <div class="modal-body">
+        <div class="modal-icon" id="modal-icon">👾</div>
+        <h2 class="modal-title" id="modal-title">Name</h2>
+        <p class="modal-desc" id="modal-desc">Description</p>
+      </div>
+    </div>
+  </div>
+
+
+</body>
+</html>
+
+<script>// Game vocabulary pools with Japanese translations
+const POOLS = {
+  upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+  lower: "abcdefghijklmnopqrstuvwxyz".split(""),
+  g5: [
+    { eng: "hello", jp: "こんにちは" },
+    { eng: "sometimes", jp: "ときどき" },
+    { eng: "station", jp: "えき" },
+    { eng: "school", jp: "がっこう" },
+    { eng: "hospital", jp: "びょういん" },
+    { eng: "park", jp: "こうえん" },
+    { eng: "soccer", jp: "サッカー" },
+    { eng: "baseball", jp: "やきゅう" },
+    { eng: "cook", jp: "りょうりする" },
+    { eng: "eat", jp: "食べる" },
+    { eng: "see", jp: "見る" },
+    { eng: "buy", jp: "買う" },
+    { eng: "swim", jp: "およぐ" },
+    // Days of the Week
+    { eng: "Sunday", jp: "日曜日" },
+    { eng: "Monday", jp: "月曜日" },
+    { eng: "Tuesday", jp: "火曜日" },
+    { eng: "Wednesday", jp: "水曜日" },
+    { eng: "Thursday", jp: "木曜日" },
+    { eng: "Friday", jp: "金曜日" },
+    { eng: "Saturday", jp: "土曜日" },
+    { eng: "red", jp: "あか" },
+    { eng: "where", jp: "どこ" },
+    { eng: "right", jp: "右" },
+    { eng: "left", jp: "左" },
+    { eng: "like", jp: "好き" },
+    { eng: "straight", jp: "まっすぐ" },
+    { eng: "smart", jp: "かしこい" },
+    { eng: "play", jp: "~する" },
+    { eng: "can", jp: "できる" },
+    { eng: "delicious", jp: "おいしい" }
+  ],
+  g6: [
+    { eng: "favorite", jp: "お気に入り" },
+    { eng: "English", jp: "英語" },
+    { eng: "Japanese", jp: "国語" },
+    { eng: "science", jp: "理科" },
+    { eng: "eraser", jp: "消しゴム" },
+    { eng: "treasure", jp: "たからもの" },
+    { eng: "pencil", jp: "鉛筆" },
+    { eng: "memories", jp: "おもいで" },
+    { eng: "junior high", jp: "ちゅうがっこう" },
+    { eng: "club", jp: "クラブ・ぶかつ" },
+    { eng: "event", jp: "ぎょうじ・イベント" },
+    { eng: "shrine", jp: "じんじゃ" },
+    { eng: "temple", jp: "おてら" },
+    { eng: "traditional", jp: "でんとうてきな" },
+    { eng: "culture", jp: "ぶんか" },
+    // Days of the Week
+    { eng: "Sunday", jp: "日曜日" },
+    { eng: "Monday", jp: "月曜日" },
+    { eng: "Tuesday", jp: "火曜日" },
+    { eng: "Wednesday", jp: "水曜日" },
+    { eng: "Thursday", jp: "木曜日" },
+    { eng: "Friday", jp: "金曜日" },
+    { eng: "Saturday", jp: "土曜日" },
+    // Months of the Year
+    { eng: "January", jp: "1月" },
+    { eng: "February", jp: "2月" },
+    { eng: "March", jp: "3月" },
+    { eng: "April", jp: "4月" },
+    { eng: "May", jp: "5月" },
+    { eng: "June", jp: "6月" },
+    { eng: "July", jp: "7月" },
+    { eng: "August", jp: "8月" },
+    { eng: "September", jp: "9月" },
+    { eng: "October", jp: "10月" },
+    { eng: "November", jp: "11月" },
+    { eng: "December", jp: "12月" },
+    // 7 Common Verbs
+    { eng: "study", jp: "勉強する" },
+    { eng: "practice", jp: "練習する" },
+    { eng: "run", jp: "走る" },
+    { eng: "write", jp: "書く" },
+    { eng: "read", jp: "読む" },
+    { eng: "speak", jp: "話す" },
+    { eng: "listen", jp: "聞く" }
+  ]
+};
+
+// Rewards configuration - Updated with root relative image paths for A-Z
+const REWARDS = {
+  letters: [
+    "local/g4/am.png",
+    "local/g4/bm.png",
+    "local/g4/cm.png",
+    "local/g4/dm.png",
+    "local/g4/em.png",
+    "local/g4/fm.png",
+    "local/g4/gm.png",
+    "local/g4/hm.png",
+    "local/g4/im.png",
+    "local/g4/jm.png",
+    "local/g4/km.png",
+    "local/g4/lm.png",
+    "local/g4/mm.png",
+    "local/g4/nm.png",
+    "local/g4/om.png",
+    "local/g4/pm.png",
+    "local/g4/qm.png",
+    "local/g4/rm.png",
+    "local/g4/sm.png",
+    "local/g4/tm.png",
+    "local/g4/um.png",
+    "local/g4/vm.png",
+    "local/g4/wm.png",
+    "local/g4/xm.png",
+    "local/g4/ym.png",
+    "local/g4/zm.png"
+  ],
+  g5: {
+    normal: [
+      "local/g5/nreward1.png",
+      "local/g5/nreward2.png",
+      "local/g5/nreward3.png",
+      "local/g5/nreward4.png",
+      "local/g5/nreward5.png",
+      "local/g5/nreward6.png",
+      "local/g5/nreward7.png",
+      "local/g5/nreward8.png",
+      "local/g5/nreward9.png",
+      "local/g5/nreward10.png",
+      "local/g5/nreward11.png",
+      "local/g5/nreward12.png",
+      "local/g5/nreward13.png",
+      "local/g5/nreward14.png",
+      "local/g5/nreward15.png"
+    ],
+    ultra: [
+      "local/g5/URreward1.png", 
+      "local/g5/URreward2.png", 
+      "local/g5/URreward3.png", 
+      "local/g5/URreward4.png", 
+      "local/g5/URreward5.png"
+    ],
+    rareMonsters: ["Lmonster15.png", "Lmonster25.png", "Lmonster35.png"]
+  },
+  g6: {
+    normal: [    
+      "local/g6/nreward1.png",
+      "local/g6/nreward2.png",
+      "local/g6/nreward3.png",
+      "local/g6/nreward4.png",
+      "local/g6/nreward5.png",
+      "local/g6/nreward6.png",
+      "local/g6/nreward7.png",
+      "local/g6/nreward8.png",
+      "local/g6/nreward9.png",
+      "local/g6/nreward10.png",
+      "local/g6/nreward11.png",
+      "local/g6/nreward12.png",
+      "local/g6/nreward13.png",
+      "local/g6/nreward14.png",
+      "local/g6/nreward15.png"], 
+    ultra: [
+      "local/g6/URreward1.png", 
+      "local/g6/URreward2.png", 
+      "local/g6/URreward3.png", 
+      "local/g6/URreward4.png", 
+      "local/g6/URreward5.png"
+    ], 
+    rareMonsters: ["Lmonster16.png", "Lmonster26.png", "Lmonster36.png"]
+  }
+};
+
+// Dynamic fallback background colors underneath the desert image
+const ARENA_BACKGROUNDS = [
+  "linear-gradient(135deg, #1d1e2c 0%, #2b2d42 100%)",
+  "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
+  "linear-gradient(135deg, #141e30 0%, #243b55 100%)",
+  "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+  "linear-gradient(135deg, #311b92 0%, #4a148c 100%)",
+  "linear-gradient(135deg, #1a0633 0%, #4d004d 100%)"
+];
+
+// Helper to determine if a reward string represents an image path (.png, .jpg, etc.)
+function isImagePath(str) {
+  return typeof str === 'string' && (str.endsWith('.png') || str.endsWith('.jpg') || str.endsWith('.jpeg') || str.endsWith('.svg') || str.endsWith('.gif'));
+}
+
+function getMonsterEmojiRepresentation(emoji) {
+  return emoji; // Directly return the image path or emoji as is
+}
+
+// Game states
+let currentMode = "upper";
+let targetWords = [];
+let currentIndex = 0;
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let lastUnlockedReward = { emoji: "🎉", name: "Reward", desc: "" }; 
+let activeTab = "letters";
+
+// Level & Battle variables
+let currentMonsterIndex = 1;     // From 1 to 8 monsters
+let currentMonsterHP = 3;        // Tracks HP state of current active monster
+let maxMonsterHP = 3;            // Total required hits for current monster
+let isBossBattle = false;
+let bossMonsterEmoji = "";
+let bossMonsterIndex = 0;
+
+// NEW: Player Health Tracker
+let playerHP = 5;
+
+// Canvas Tracing & Tracing Validation
+let canvas, ctx;
+let isDrawing = false;
+let tracePixelsCount = 0;
+let offTargetPixelsCount = 0;
+let hasAttackedThisTurn = false;
+
+// Load progression from localStorage
+let saveData = JSON.parse(localStorage.getItem("monsterQuest_v5")) || {
+  bestTimes: { upper: null, lower: null, g5: null, g6: null },
+  unlocked: {
+    letters: [],
+    g5_normal: [],
+    g5_ultra: [],
+    g5_rareMonsters: [],
+    g6_normal: [],
+    g6_ultra: [],
+    g6_rareMonsters: []
+  }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  canvas = document.getElementById("writing-canvas");
+  if (canvas) {
+    ctx = canvas.getContext("2d");
+    setupCanvasInput();
+  }
+  updateMenuRecords();
+});
+
+function setupCanvasInput() {
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+
+  const startDraw = (e) => {
+    isDrawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    e.preventDefault();
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const pos = getPos(e);
+
+    // Check pixel color underneath mouse before drawing stroke over it
+    try {
+      const pixel = ctx.getImageData(Math.floor(pos.x), Math.floor(pos.y), 1, 1).data;
+      // Guide color #e2e8f0 is R:226, G:232, B:240
+      const isGuidePixel = (pixel[0] >= 200 && pixel[1] >= 200 && pixel[2] >= 200);
+
+      if (isGuidePixel) {
+        tracePixelsCount++;
+      } else {
+        offTargetPixelsCount++;
+      }
+    } catch (err) {
+      // Fallback
+      tracePixelsCount++;
+    }
+
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "#1a365d"; 
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    
+    e.preventDefault();
+  };
+
+  const stopDraw = () => { isDrawing = false; };
+
+  canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    startDraw(e);
+  });
+  canvas.addEventListener("pointermove", draw);
+  canvas.addEventListener("pointerup", (e) => {
+    canvas.releasePointerCapture(e.pointerId);
+    stopDraw();
+  });
+  canvas.addEventListener("pointercancel", stopDraw);
+}
+
+function drawTraceGuide(wordText) {
+  if (!canvas || !ctx) return;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  
+  const processedText = wordText;
+  
+  const size = processedText.length > 1 ? 7.5 : 13;
+  ctx.font = `900 ${size}rem 'Comic Sans MS', sans-serif`;
+  ctx.fillStyle = "#e2e8f0"; 
+  ctx.fillText(processedText, canvas.width / 2, canvas.height / 2);
+}
+
+function clearCanvas() {
+  tracePixelsCount = 0;
+  offTargetPixelsCount = 0;
+  hasAttackedThisTurn = false;
+  
+  const warningEl = document.getElementById("trace-warning");
+  if (warningEl) warningEl.style.display = "none";
+  
+  const currentItem = targetWords[currentIndex];
+  if (currentItem) {
+    const wordText = (typeof currentItem === "object") ? currentItem.eng : currentItem;
+    drawTraceGuide(wordText);
+  }
+}
+
+function updateMonsterHPBar() {
+  const hpBarFill = document.getElementById("monster-hp-bar");
+  const hpBarText = document.getElementById("monster-hp-text");
+  if (!hpBarFill || !hpBarText) return;
+
+  const percentage = (currentMonsterHP / maxMonsterHP) * 100;
+  hpBarFill.style.width = `${Math.max(0, percentage)}%`;
+  hpBarText.textContent = `HP: ${currentMonsterHP}/${maxMonsterHP}`;
+}
+
+// NEW: Render heart indicators and trigger game over if HP reaches 0
+function updatePlayerHearts() {
+  const heartsContainer = document.getElementById("player-hearts-container");
+  if (!heartsContainer) return;
+
+  let heartString = "";
+  for (let i = 0; i < 5; i++) {
+    if (i < playerHP) {
+      heartString += "❤️";
+    } else {
+      heartString += "🖤"; // Gray heart for lost HP
+    }
+  }
+  heartsContainer.innerHTML = heartString;
+
+  if (playerHP <= 0) {
+    alert("No hearts remaining! Game Over. Trace carefully next time!");
+    exitGame(); // Returns to main menu
+  }
+}
+
+function startWalkingPhase() {
+  if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const arenaBg = document.getElementById("game-arena-bg");
+  const monsterCont = document.getElementById("monster-container-platformer");
+  const monsterImg = document.getElementById("monster-sprite"); // Find the monster element
+  
+  // CHANGED: If it's a Boss Battle, use the active custom boss image path!
+  if (monsterImg) {
+    if (isBossBattle) {
+      monsterImg.src = bossMonsterEmoji;
+    } else {
+      const randomMonsterNum = Math.floor(Math.random() * 19) + 1;
+      monsterImg.src = `monster${randomMonsterNum}.png`;
+    }
+  }
+  
+  if (arenaBg) arenaBg.classList.add("world-scrolling");
+  
+  if (monsterCont) {
+    monsterCont.classList.add("hidden");
+    setTimeout(() => {
+      monsterCont.classList.remove("hidden");
+    }, 600);
+  }
+}
+
+function stopWalkingPhase() {
+  const arenaBg = document.getElementById("game-arena-bg");
+  if (arenaBg) arenaBg.classList.remove("world-scrolling");
+}
+
+function attackMonster() {
+  if (hasAttackedThisTurn) return;
+
+  // Stricter trace checks:
+  // 1. Must trace enough pixels on top of the actual letter guide
+  const isValidTrace = tracePixelsCount >= 10;
+
+  // 2. Cannot scribble wildly outside the letter area (allows small mis-strokes)
+  const isTooMuchScribble = offTargetPixelsCount > (tracePixelsCount * 2) + 25;
+
+  if (!isValidTrace || isTooMuchScribble) {
+    const warningEl = document.getElementById("trace-warning");
+    if (warningEl) {
+      warningEl.style.display = "inline-block";
+      warningEl.style.animation = 'none';
+      warningEl.offsetHeight; // Force DOM reflow
+      warningEl.style.animation = '';
+    }
+    
+    // Deduct player health & trigger hit effect
+    playerHP--;
+    updatePlayerHearts();
+
+    const playerImg = document.getElementById("player-avatar");
+    if (playerImg) {
+      playerImg.style.filter = "brightness(2) saturate(2) drop-shadow(0 0 12px #ff3838)";
+      playerImg.style.transform = "translateX(-8px)";
+      setTimeout(() => { playerImg.style.transform = "translateX(8px)"; }, 80);
+      setTimeout(() => { playerImg.style.transform = "translateX(-4px)"; }, 160);
+      setTimeout(() => {
+        playerImg.style.filter = "";
+        playerImg.style.transform = "";
+      }, 250);
+    }
+    
+    clearCanvas();
+    return;
+  }
+  
+  hasAttackedThisTurn = true;
+
+  const warningEl = document.getElementById("trace-warning");
+  if (warningEl) warningEl.style.display = "none";
+
+  // Deal Damage to Monster
+  currentMonsterHP--;
+  updateMonsterHPBar();
+
+  const monsterImg = document.getElementById("monster-sprite");
+  if (monsterImg) {
+    monsterImg.style.filter = "brightness(2) saturate(2) drop-shadow(0 0 10px red)";
+    setTimeout(() => { monsterImg.style.filter = ""; }, 250);
+  }
+
+  // Defeat Check
+  if (currentMonsterHP <= 0) {
+    if (currentMonsterIndex >= 8) {
+      endGame();
+      return;
+    } else {
+      currentMonsterIndex++;
+      maxMonsterHP = (currentMonsterIndex === 8) ? 4 : 3;
+      currentMonsterHP = maxMonsterHP;
+      startWalkingPhase();
+    }
+  }
+
+  currentIndex++;
+  if (currentIndex >= targetWords.length) {
+    currentIndex = 0; 
+  }
+
+  setTimeout(() => {
+    const isWalking = document.getElementById("game-arena-bg")?.classList.contains("world-scrolling");
+    if (isWalking) {
+      setTimeout(() => {
+        stopWalkingPhase();
+        clearCanvas();
+        setupTarget();
+        updateMonsterHPBar();
+      }, 1500);
+    } else {
+      clearCanvas();
+      setupTarget();
+      updateMonsterHPBar();
+    }
+  }, 300);
+}
+
+function exitGame() {
+  clearInterval(timerInterval);
+  showScreen("menu");
+}
+
+function updateMenuRecords() {
+  for (let mode in saveData.bestTimes) {
+    const record = saveData.bestTimes[mode];
+    const el = document.getElementById(`best-${mode}`);
+    if (el) {
+      el.textContent = record ? `Best: ${record.toFixed(2)}s` : "Best: --s";
+    }
+  }
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
+  const targetScreen = document.getElementById(`screen-${screenId}`);
+  if (targetScreen) {
+    targetScreen.classList.add('active');
+  }
+  if (screenId === 'menu') {
+    updateMenuRecords();
+    returnToTitleMusic(); // <--- ADD THIS LINE HERE
+  }
+}
+
+// Selects a random background image from bg1.png to bg9.png
+function setRandomBackground() {
+  const randomNum = Math.floor(Math.random() * 9) + 1;
+  const bgElement = document.getElementById('game-scrolling-bg');
+  if (bgElement) {
+    bgElement.style.backgroundImage = `url("bg${randomNum}.png")`;
+  }
+}
+
+function startGame(mode) {
+  setRandomBackground(); // Dynamic random background selected at start
+  currentMode = mode;
+  
+  // PLAY STAGE BGM BASED ON MODE
+  if (mode === "upper") playMusic("upper.mp3");
+  else if (mode === "lower") playMusic("lower.mp3");
+  else if (mode === "g5") playMusic("5bgm.mp3");
+  else if (mode === "g6") playMusic("6bgm.mp3");
+
+  currentIndex = 0;
+  elapsed = 0;
+  isBossBattle = false;
+
+  // NEW: Reset player health to maximum at level start
+  playerHP = 5;
+  updatePlayerHearts();
+ 
+
+  currentMonsterIndex = 1;
+  maxMonsterHP = 3;
+  currentMonsterHP = maxMonsterHP;
+  
+  const bossBanner = document.getElementById("boss-banner");
+  if (bossBanner) bossBanner.style.display = "none";
+
+  const warningEl = document.getElementById("trace-warning");
+  if (warningEl) warningEl.style.display = "none";
+
+  const basePool = POOLS[mode] || POOLS.upper;
+  targetWords = [];
+  
+  const requiredCount = 25;
+  if (mode === "upper" || mode === "lower") {
+    while (targetWords.length < requiredCount) {
+      const idx = Math.floor(Math.random() * basePool.length);
+      targetWords.push(POOLS[mode][idx]);
+    }
+  } 
+  else {
+    // CHANGED: Encounter probability changed from 0.15 (15%) to exactly 0.10 (10%)
+    if (Math.random() < 0.10) {
+      isBossBattle = true;
+      const gradeRareMons = REWARDS[mode].rareMonsters;
+      bossMonsterIndex = Math.floor(Math.random() * gradeRareMons.length);
+      bossMonsterEmoji = getMonsterEmojiRepresentation(gradeRareMons[bossMonsterIndex]);
+      
+      // HP BOOST
+      currentMonsterHP = 200; 
+      maxMonsterHP = 200;
+      
+      targetWords = [{ eng: "CHAMPION", jp: "🏆 チャンピオン" }];
+      while (targetWords.length < requiredCount) {
+        const rIdx = Math.floor(Math.random() * basePool.length);
+        targetWords.push(basePool[rIdx]);
+      }
+      if (bossBanner) bossBanner.style.display = "block";
+    } else {
+      // NORMAL MONSTERS HP
+      currentMonsterHP = 100;
+      maxMonsterHP = 100;
+      while (targetWords.length < requiredCount) {
+        const idx = Math.floor(Math.random() * basePool.length);
+        targetWords.push(basePool[idx]);
+      }
+    }
+  }
+
+  const arenaBg = document.getElementById("game-arena-bg");
+  if (arenaBg) {
+    const randomBg = ARENA_BACKGROUNDS[Math.floor(Math.random() * ARENA_BACKGROUNDS.length)];
+    arenaBg.style.background = randomBg;
+  }
+  
+  showScreen('game');
+  startWalkingPhase();
+  
+  setTimeout(() => {
+    stopWalkingPhase();
+    setupTarget();
+    updateMonsterHPBar();
+  }, 1500);
+  
+  const timerLabel = document.getElementById("game-timer");
+  if (timerLabel) timerLabel.textContent = "0.00";
+  startTime = performance.now();
+  
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsed = (performance.now() - startTime) / 1000;
+    if (timerLabel) timerLabel.textContent = elapsed.toFixed(2);
+  }, 50);
+}
+
+function setupTarget() {
+  const currentTarget = targetWords[currentIndex];
+  const progressEl = document.getElementById("game-progress");
+  const jpLabel = document.getElementById("word-japanese-translation");
+
+  const warningEl = document.getElementById("trace-warning");
+  if (warningEl) warningEl.style.display = "none";
+
+  let wordText = "";
+  let translationText = "";
+
+  if (typeof currentTarget === "object") {
+    wordText = currentTarget.eng;
+    translationText = currentTarget.jp;
+  } else {
+    wordText = currentTarget;
+    translationText = currentMode === "upper" ? "おおもじ" : "こもじ";
+  }
+
+  if (isBossBattle) {
+    if (progressEl) progressEl.textContent = "BOSS BATTLE!";
+  } else {
+    if (progressEl) progressEl.textContent = `${currentMonsterIndex}/8`;
+  }
+
+  if (jpLabel) jpLabel.textContent = translationText;
+
+  drawTraceGuide(wordText);
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+
+  // 1. PLAY VICTORY MUSIC HERE 🎵
+  playMusic("victory.mp3");
+
+  const finishTime = (performance.now() - startTime) / 1000;
+  
+  const finishTimeEl = document.getElementById("finish-time");
+  if (finishTimeEl) finishTimeEl.textContent = finishTime.toFixed(2);
+
+  let isNewRecord = false;
+  const previousRecord = saveData.bestTimes[currentMode];
+  if (!previousRecord || finishTime < previousRecord) {
+    saveData.bestTimes[currentMode] = finishTime;
+    isNewRecord = true;
+  }
+  
+  const recordAlert = document.getElementById("new-record-text");
+  if (recordAlert) recordAlert.style.display = isNewRecord ? "block" : "none";
+
+  let unlockedReward = "🎉";
+  let unlockedName = "All items collected!";
+  let customDesc = "Great job writing! You unlocked a neat reward badge!";
+
+  if (isBossBattle) {
+    unlockedReward = bossMonsterEmoji;
+    const key = `${currentMode}_rareMonsters`;
+    const isUnlockedAlready = saveData.unlocked[key].includes(bossMonsterIndex.toString());
+
+    if (isUnlockedAlready) {
+      unlockedName = `Duplicate Defeated!`;
+    } else {
+      saveData.unlocked[key].push(bossMonsterIndex.toString());
+      unlockedName = `👑 CAPTURED BOSS MONSTER! 👑`;
+    }
+    customDesc = "Incredible! You wrote fast enough to defeat and capture this wild Boss Monster!";
+  }
+  else if (currentMode === "upper" || currentMode === "lower") {
+    const rolledIdx = Math.floor(Math.random() * REWARDS.letters.length);
+    unlockedReward = REWARDS.letters[rolledIdx];
+    
+    if (saveData.unlocked.letters.includes(rolledIdx.toString())) {
+      unlockedName = `Got Duplicate!`;
+    } else {
+      saveData.unlocked.letters.push(rolledIdx.toString());
+      unlockedName = `New Monster Unlocked!`;
+    }
+  } 
+  else {
+    const gradeKey = currentMode; 
+    const normalUnlocked = saveData.unlocked[`${gradeKey}_normal`];
+    const ultraUnlocked = saveData.unlocked[`${gradeKey}_ultra`];
+    
+    const maxNormals = REWARDS[gradeKey].normal.length;
+    const maxUltras = REWARDS[gradeKey].ultra.length;
+    const allNormalsUnlocked = normalUnlocked.length >= maxNormals;
+
+    const qualifiesForUltra = (finishTime < 50) || allNormalsUnlocked;
+    const rolledUltraRare = qualifiesForUltra && (Math.random() < 0.20);
+
+    if ((rolledUltraRare || allNormalsUnlocked) && ultraUnlocked.length < maxUltras) {
+      const lockedUltras = [];
+      REWARDS[gradeKey].ultra.forEach((_, idx) => {
+        if (!ultraUnlocked.includes(idx.toString())) lockedUltras.push(idx);
+      });
+      if (lockedUltras.length > 0) {
+        const pickedIdx = lockedUltras[Math.floor(Math.random() * lockedUltras.length)];
+        saveData.unlocked[`${gradeKey}_ultra`].push(pickedIdx.toString());
+        unlockedReward = REWARDS[gradeKey].ultra[pickedIdx];
+        unlockedName = `💎 ULTRA RARE PRIZE! 💎`;
+      }
+    } 
+    if (unlockedName === "All items collected!" && normalUnlocked.length < maxNormals) {
+      const lockedNormals = [];
+      REWARDS[gradeKey].normal.forEach((_, idx) => {
+        if (!normalUnlocked.includes(idx.toString())) lockedNormals.push(idx);
+      });
+
+      if (lockedNormals.length > 0) {
+        const pickedIdx = lockedNormals[Math.floor(Math.random() * lockedNormals.length)];
+        saveData.unlocked[`${gradeKey}_normal`].push(pickedIdx.toString());
+        unlockedReward = REWARDS[gradeKey].normal[pickedIdx];
+        unlockedName = `🎁 Normal Prize`;
+      }
+    }
+  }
+
+  lastUnlockedReward = {
+    emoji: unlockedReward,
+    name: unlockedName,
+    desc: customDesc
+  };
+
+  localStorage.setItem("monsterQuest_v5", JSON.stringify(saveData));
+  
+  const rewardIconEl = document.getElementById("reward-icon");
+  const rewardNameEl = document.getElementById("reward-name");
+  
+  if (rewardIconEl) {
+    if (isImagePath(unlockedReward)) {
+      rewardIconEl.innerHTML = `<img src="${unlockedReward}" style="max-height: 80px; width: auto;" />`;
+    } else {
+      rewardIconEl.innerHTML = unlockedReward;
+    }
+  }
+  if (rewardNameEl) rewardNameEl.textContent = unlockedName;
+  
+  showScreen("victory");
+}
+
+function zoomItem(emoji, title, desc, isLocked) {
+  const modal = document.getElementById("reward-modal");
+  if (!modal) return;
+  
+  const modalIcon = document.getElementById("modal-icon");
+  const modalTitle = document.getElementById("modal-title");
+  const modalDesc = document.getElementById("modal-desc");
+
+  if (modalTitle) modalTitle.style.display = "none";
+  if (modalDesc) modalDesc.style.display = "none";
+
+  if (modalIcon) {
+    if (!isLocked && isImagePath(emoji)) {
+      modalIcon.innerHTML = `<img src="${emoji}" style="max-width: 85vw; max-height: 75vh; width: auto; height: auto; object-fit: contain; margin: 0 auto; display: block;" />`;
+    } else {
+      modalIcon.innerHTML = isLocked ? "?" : emoji;
+      modalIcon.style.fontSize = isLocked ? "6rem" : "10rem";
+    }
+  }
+
+  modal.classList.add("active");
+}
+
+function zoomVictoryReward() {
+  if (lastUnlockedReward) {
+    zoomItem(lastUnlockedReward.emoji, lastUnlockedReward.name, lastUnlockedReward.desc, false);
+  }
+}
+
+function closeZoom() {
+  const modal = document.getElementById("reward-modal");
+  if (modal) modal.classList.remove("active");
+}
+
+function openCollection() {
+  playMusic("collection.mp3");
+  showScreen("collection");
+  renderCollection();
+}
+
+function switchTab(tabId) {
+  activeTab = tabId;
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".grid-container").forEach(grid => grid.classList.remove("active"));
+
+  const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+  const activeGrid = document.getElementById(`grid-${tabId}`);
+  if (activeBtn) activeBtn.classList.add("active");
+  if (activeGrid) activeGrid.classList.add("active");
+  
+  updateCollectionProgress();
+}
+
+function updateCollectionProgress() {
+  const badge = document.getElementById("collection-progress-badge");
+  if (!badge) return;
+
+  if (activeTab === "letters") {
+    const unlockedCount = saveData.unlocked.letters.length;
+    badge.textContent = `${unlockedCount}/26`;
+  } else {
+    const gradeKey = activeTab;
+    const normalCount = saveData.unlocked[`${gradeKey}_normal`].length;
+    const ultraCount = saveData.unlocked[`${gradeKey}_ultra`].length;
+    const rareCount = saveData.unlocked[`${gradeKey}_rareMonsters`].length;
+    
+    const totalUnlocked = normalCount + ultraCount + rareCount;
+    const totalPossible = REWARDS[gradeKey].normal.length + REWARDS[gradeKey].ultra.length + REWARDS[gradeKey].rareMonsters.length;
+    
+    badge.textContent = `${totalUnlocked}/${totalPossible}`;
+  }
+}
+
+function renderCollection() {
+  const lettersSub = document.getElementById("grid-letters-sub");
+  if (lettersSub) {
+    lettersSub.innerHTML = "";
+    REWARDS.letters.forEach((monster, idx) => {
+      const isUnlocked = saveData.unlocked.letters.includes(idx.toString());
+      const item = document.createElement("div");
+      item.className = `collection-item ${isUnlocked ? "" : "locked"}`;
+      
+      if (isUnlocked && isImagePath(monster)) {
+        item.innerHTML = `<img src="${monster}" style="width: 100%; height: 100%; object-fit: contain;" />`;
+      } else {
+        item.innerHTML = `<span>${isUnlocked ? monster : "?"}</span>`;
+      }
+      
+      item.onclick = () => {
+        const letterChar = String.fromCharCode(65 + idx);
+        const title = `Letter Monster ${letterChar}`;
+        const desc = `Great job completing the letter stage! You tracked down this wild friend.`;
+        zoomItem(monster, title, desc, !isUnlocked);
+      };
+      lettersSub.appendChild(item);
+    });
+  }
+
+  const buildGradeGrid = (gradeKey) => {
+    const normalGrid = document.getElementById(`grid-${gradeKey}-normal`);
+    const ultraGrid = document.getElementById(`grid-${gradeKey}-ultra`);
+    const rareMonGrid = document.getElementById(`grid-${gradeKey}-rare-monsters`);
+    
+    if (normalGrid) {
+      normalGrid.innerHTML = "";
+      REWARDS[gradeKey].normal.forEach((itemEmoji, idx) => {
+        const isUnlocked = saveData.unlocked[`${gradeKey}_normal`].includes(idx.toString());
+        const item = document.createElement("div");
+        item.className = `collection-item ${isUnlocked ? "" : "locked"}`;
+
+        if (isUnlocked && isImagePath(itemEmoji)) {
+          item.innerHTML = `<img src="${itemEmoji}" style="width: 100%; height: 100%; object-fit: contain;" />`;
+        } else {
+          item.innerHTML = `<span>${isUnlocked ? itemEmoji : "?"}</span>`;
+        }
+
+        item.onclick = () => {
+          zoomItem(itemEmoji, `Normal Prize #${idx + 1}`, "Obtained by successfully tracing words in normal stages!", !isUnlocked);
+        };
+        normalGrid.appendChild(item);
+      });
+    }
+
+    if (ultraGrid) {
+      ultraGrid.innerHTML = "";
+      REWARDS[gradeKey].ultra.forEach((itemEmoji, idx) => {
+        const isUnlocked = saveData.unlocked[`${gradeKey}_ultra`].includes(idx.toString());
+        const item = document.createElement("div");
+        item.className = `collection-item rare-card ${isUnlocked ? "" : "locked"}`;
+        
+        if (isUnlocked && isImagePath(itemEmoji)) {
+          item.innerHTML = `<img src="${itemEmoji}" style="width: 100%; height: 100%; object-fit: contain;" />`;
+        } else {
+          item.innerHTML = `<span>${isUnlocked ? itemEmoji : "?"}</span>`;
+        }
+
+        item.onclick = () => {
+          zoomItem(itemEmoji, `💎 Ultra Rare Prize!`, "Unlocked by finishing a tracing level in under 50 seconds!", !isUnlocked);
+        };
+        ultraGrid.appendChild(item);
+      });
+    }
+
+    if (rareMonGrid) {
+      rareMonGrid.innerHTML = "";
+      REWARDS[gradeKey].rareMonsters.forEach((rawEmoji, idx) => {
+        const actualEmoji = getMonsterEmojiRepresentation(rawEmoji);
+        const isUnlocked = saveData.unlocked[`${gradeKey}_rareMonsters`].includes(idx.toString());
+        const item = document.createElement("div");
+        item.className = `collection-item rare-card ${isUnlocked ? "" : "locked"}`;
+        item.style.borderColor = "#ff4757"; 
+        
+        if (isUnlocked && isImagePath(actualEmoji)) {
+          item.innerHTML = `<img src="${actualEmoji}" style="width: 100%; height: 100%; object-fit: contain;" />`;
+        } else {
+          item.innerHTML = `<span>${isUnlocked ? actualEmoji : "?"}</span>`;
+        }
+        
+        item.onclick = () => {
+          zoomItem(actualEmoji, `👑 Legendary Monster`, "Capture this legendary beast by winning a 10% chance wild Boss Tracing Encounter!", !isUnlocked);
+        };
+        rareMonGrid.appendChild(item);
+      });
+    }
+  };
+
+  buildGradeGrid("g5");
+  buildGradeGrid("g6");
+  
+  updateCollectionProgress();
+}
+
+/* ================= RETRO CHARACTER SELECTION CONTROLLER ================= */
+let selectedFighterSrc = "character1.png"; 
+let pendingGameMode = "upper";
+
+function goToCharacterSelect(mode) {
+  pendingGameMode = mode;
+  showScreen("char-select");
+}
+
+function selectFighter(imageSrc) {
+  selectedFighterSrc = imageSrc;
+  
+  const playerAvatarImg = document.getElementById("player-avatar");
+  if (playerAvatarImg) {
+    playerAvatarImg.src = imageSrc;
+  }
+  
+  startGame(pendingGameMode);
+}
+
+// Load Title Screen Background Music
+const titleBgm = new Audio("title.mp3");
+titleBgm.loop = true;
+titleBgm.volume = 0.5;
+
+function startMenuMusic() {
+  titleBgm.play().then(() => {
+    document.removeEventListener("click", startMenuMusic);
+  }).catch(err => {
+    console.log("Audio waiting for user interaction...");
+  });
+}
+
+document.addEventListener("click", startMenuMusic);
+
+let currentStageBgm = null;
+
+function playMusic(file) {
+  if (typeof titleBgm !== "undefined" && titleBgm) {
+    titleBgm.pause();
+  }
+
+  if (currentStageBgm) {
+    currentStageBgm.pause();
+    currentStageBgm.currentTime = 0;
+  }
+
+  currentStageBgm = new Audio(file);
+  currentStageBgm.loop = true;
+  currentStageBgm.volume = 0.5;
+  currentStageBgm.play().catch(err => console.log("Waiting for user interaction..."));
+}
+
+function returnToTitleMusic() {
+  if (currentStageBgm) {
+    currentStageBgm.pause();
+    currentStageBgm.currentTime = 0;
+  }
+  if (typeof titleBgm !== "undefined" && titleBgm) {
+    titleBgm.play();
+  }
+}
+//# sourceURL=userscript.js
+</script>
+</body>
+</html>
